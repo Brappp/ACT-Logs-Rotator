@@ -1,2 +1,0 @@
-C:\Users\actuo\source\repos\daltest\daltest\obj\Debug\daltest.csproj.AssemblyReference.cache
-C:\Users\actuo\source\repos\daltest\daltest\obj\Debug\daltest.csproj.CoreCompileInputs.cache
