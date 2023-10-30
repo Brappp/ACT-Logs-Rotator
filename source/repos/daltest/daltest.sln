@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34024.191
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "daltest", "daltest\daltest.csproj", "{CF806ABC-21D5-4435-914D-CC7F20C7C1DF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CF806ABC-21D5-4435-914D-CC7F20C7C1DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF806ABC-21D5-4435-914D-CC7F20C7C1DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF806ABC-21D5-4435-914D-CC7F20C7C1DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF806ABC-21D5-4435-914D-CC7F20C7C1DF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A2C7D7AE-DBFD-4C7F-8C45-31344BA69987}
+	EndGlobalSection
+EndGlobal
