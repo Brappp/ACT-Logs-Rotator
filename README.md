@@ -38,5 +38,5 @@ This is a plugin for Advanced Combat Tracker (ACT) that automatically rotates lo
 
 
 
-![Image Description](/uml.jpg)
+![Flow](uml.jpg)
 
