@@ -3,9 +3,17 @@ using System.IO;
 using System.Windows.Forms;
 using Advanced_Combat_Tracker;
 using System.Drawing;
+using System.Xml.Serialization;
 
-namespace LogsRotate 
+namespace LogsRotate
 {
+    public class PluginSettings
+    {
+        public int DaysToKeep { get; set; }
+        public string LogfilePath { get; set; }
+        public bool AutoRunOnLaunch { get; set; }
+    }
+
     public class LogRotatorPlugin : IActPluginV1
     {
         // UI Elements
@@ -13,34 +21,37 @@ namespace LogsRotate
         private Label lblLogFilePath;
         private TextBox txtDaysToKeep;
         private TextBox txtLogFilePath;
-        private Button btnApply;
-        private Timer autoRunTimer;
+        private Button btnSave;
+        private Button btnRun;
         private LinkLabel lnkGitHub;
-        private CheckBox chkRunOnce;
+        private CheckBox chkAutoRunOnLaunch;
         private Label lblLastRun;
         private Label lblLogsDeleted;
-        private CheckBox chkEnabled; // Checkbox to enable or disable the plugin
+
+        private PluginSettings settings;
+        private string settingsFilePath;
 
         public void InitPlugin(TabPage pluginScreenSpace, Label pluginStatusText)
         {
             lblStatus = pluginStatusText;
 
-            // Initialize UI elements before accessing their properties
+            // Initialize UI elements
             txtDaysToKeep = new TextBox();
             txtLogFilePath = new TextBox();
-            chkRunOnce = new CheckBox();
-            chkEnabled = new CheckBox(); // Initialize the enable checkbox
+            chkAutoRunOnLaunch = new CheckBox();
 
-            // Initialize and configure the timer for auto-run
-            autoRunTimer = new Timer();
-            autoRunTimer.Interval = 60000;  // 60,000 milliseconds = 1 minute
-            autoRunTimer.Tick += AutoRunTimer_Tick;
+            // Resolve the %AppData% path and set the settings file path
+            string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string actPluginPath = Path.Combine(appDataPath, "Advanced Combat Tracker", "Plugins");
+            settingsFilePath = Path.Combine(actPluginPath, "LogsRotateSettings.xml");
 
             // Load settings
-            txtDaysToKeep.Text = LogsRotate.Settings.Default.DaysToKeep.ToString();
-            txtLogFilePath.Text = Path.GetDirectoryName(ActGlobals.oFormActMain.LogFilePath);
-            chkRunOnce.Checked = LogsRotate.Settings.Default.RunOnce;
-            chkEnabled.Checked = LogsRotate.Settings.Default.PluginEnabled; // Load the state of the checkbox
+            LoadSettings();
+
+            // Update UI elements with loaded settings
+            txtDaysToKeep.Text = settings.DaysToKeep.ToString();
+            txtLogFilePath.Text = settings.LogfilePath;
+            chkAutoRunOnLaunch.Checked = settings.AutoRunOnLaunch;
 
             // Create UI elements for Days to Keep
             Label lblDaysToKeep = new Label
@@ -51,7 +62,6 @@ namespace LogsRotate
             };
 
             txtDaysToKeep.Location = new Point(100, 10);
-            txtDaysToKeep.Text = "5";
 
             // Create UI elements for Log File Path
             lblLogFilePath = new Label
@@ -63,32 +73,34 @@ namespace LogsRotate
 
             txtLogFilePath.Location = new Point(100, 40);
 
-            // Create CheckBox for Run Once
-            chkRunOnce.Text = "Run Once at ACT Launch";
-            chkRunOnce.Location = new Point(10, 100);
-            chkRunOnce.AutoSize = true;
-            chkRunOnce.CheckedChanged += ChkRunOnce_CheckedChanged;
+            // Create CheckBox for Auto Run on Launch
+            chkAutoRunOnLaunch.Text = "Auto Run on Launch";
+            chkAutoRunOnLaunch.Location = new Point(10, 100);
+            chkAutoRunOnLaunch.AutoSize = true;
 
-            // Create UI elements for Enable/Disable
-            chkEnabled.Text = "Enable Plugin";
-            chkEnabled.Location = new Point(10, 130); 
-            chkEnabled.AutoSize = true;
-            chkEnabled.CheckedChanged += ChkEnabled_CheckedChanged;
-
-            // Create Apply button
-            btnApply = new Button
+            // Create Save button
+            btnSave = new Button
             {
-                Text = "Save and Run",
+                Text = "Save",
                 Location = new Point(100, 70),
-                Width = 150
+                Width = 70
             };
-            btnApply.Click += BtnApply_Click;
+            btnSave.Click += BtnSave_Click;
+
+            // Create Run button
+            btnRun = new Button
+            {
+                Text = "Run",
+                Location = new Point(180, 70),
+                Width = 70
+            };
+            btnRun.Click += BtnRun_Click;
 
             // Create LinkLabel for GitHub
             lnkGitHub = new LinkLabel
             {
                 Text = "GitHub Repository",
-                Location = new Point(10, 160), 
+                Location = new Point(10, 160),
                 AutoSize = true
             };
             lnkGitHub.LinkClicked += LnkGitHub_LinkClicked;
@@ -113,84 +125,70 @@ namespace LogsRotate
             pluginScreenSpace.Controls.Add(txtDaysToKeep);
             pluginScreenSpace.Controls.Add(lblLogFilePath);
             pluginScreenSpace.Controls.Add(txtLogFilePath);
-            pluginScreenSpace.Controls.Add(btnApply);
+            pluginScreenSpace.Controls.Add(btnSave);
+            pluginScreenSpace.Controls.Add(btnRun);
             pluginScreenSpace.Controls.Add(lnkGitHub);
-            pluginScreenSpace.Controls.Add(chkRunOnce);
-            pluginScreenSpace.Controls.Add(chkEnabled); 
+            pluginScreenSpace.Controls.Add(chkAutoRunOnLaunch);
             pluginScreenSpace.Controls.Add(lblLastRun);
             pluginScreenSpace.Controls.Add(lblLogsDeleted);
 
             lblStatus.Text = "Plugin Initialized.";
 
-            // Run once at ACT launch if the checkbox is checked
-            if (chkRunOnce.Checked)
+            // Automatically run log rotation if the plugin is enabled
+            if (settings.AutoRunOnLaunch)
             {
-                BtnApply_Click(null, null);
+                BtnRun_Click(null, null);
             }
         }
 
-        private void ChkEnabled_CheckedChanged(object sender, EventArgs e)
+        private void LoadSettings()
         {
-            // Start or stop the timer based on the checkbox state
-            if (chkEnabled.Checked)
+            if (File.Exists(settingsFilePath))
             {
-                autoRunTimer.Start();
+                XmlSerializer serializer = new XmlSerializer(typeof(PluginSettings));
+                using (StreamReader reader = new StreamReader(settingsFilePath))
+                {
+                    settings = (PluginSettings)serializer.Deserialize(reader);
+                }
             }
             else
             {
-                autoRunTimer.Stop();
-            }
-
-            // Save the state of the checkbox
-            LogsRotate.Settings.Default.PluginEnabled = chkEnabled.Checked;
-            LogsRotate.Settings.Default.Save();
-        }
-
-        private void BtnApply_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                // Apply settings
-                int deletedCount = RotateLogs(int.Parse(txtDaysToKeep.Text), txtLogFilePath.Text);
-
-                lblLastRun.Text = $"Last Run: {DateTime.Now}";
-                lblLogsDeleted.Text = $"Logs Deleted: {deletedCount}";
-
-                if (chkRunOnce.Checked)
+                settings = new PluginSettings
                 {
-                    autoRunTimer.Stop();
-                }
-
-                // Save settings
-                LogsRotate.Settings.Default.DaysToKeep = int.Parse(txtDaysToKeep.Text);
-                LogsRotate.Settings.Default.LogfilePath = txtLogFilePath.Text;
-                LogsRotate.Settings.Default.RunOnce = chkRunOnce.Checked;
-                LogsRotate.Settings.Default.Save();
-            }
-            catch (FormatException ex)
-            {
-                lblStatus.Text = "Error: Invalid input format. " + ex.Message;
+                    DaysToKeep = 365,
+                    LogfilePath = Path.GetDirectoryName(ActGlobals.oFormActMain.LogFilePath),
+                    AutoRunOnLaunch = false
+                };
+                SaveSettings();
             }
         }
 
-        private void AutoRunTimer_Tick(object sender, EventArgs e)
+        private void SaveSettings()
         {
-            try
+            XmlSerializer serializer = new XmlSerializer(typeof(PluginSettings));
+            using (StreamWriter writer = new StreamWriter(settingsFilePath))
             {
-                int deletedCount = RotateLogs(int.Parse(txtDaysToKeep.Text), txtLogFilePath.Text);
-
-                lblLastRun.Text = $"Last Run: {DateTime.Now}";
-                lblLogsDeleted.Text = $"Logs Deleted: {deletedCount}";
-
-                if (chkRunOnce.Checked)
-                {
-                    autoRunTimer.Stop();
-                }
+                serializer.Serialize(writer, settings);
             }
-            catch (FormatException ex)
-            {
-                lblStatus.Text = "Error: Invalid input format. " + ex.Message;
-            }
+        }
+
+        private void BtnSave_Click(object sender, EventArgs e)
+        {
+            // Save settings
+            settings.DaysToKeep = int.Parse(txtDaysToKeep.Text);
+            settings.LogfilePath = txtLogFilePath.Text;
+            settings.AutoRunOnLaunch = chkAutoRunOnLaunch.Checked;
+
+            SaveSettings();
+        }
+
+        private void BtnRun_Click(object sender, EventArgs e)
+        {
+            // Apply settings and run
+            int deletedCount = RotateLogs(int.Parse(txtDaysToKeep.Text), txtLogFilePath.Text);
+
+            lblLastRun.Text = $"Last Run: {DateTime.Now}";
+            lblLogsDeleted.Text = $"Logs Deleted: {deletedCount}";
         }
 
         private void LnkGitHub_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -198,17 +196,8 @@ namespace LogsRotate
             System.Diagnostics.Process.Start("https://github.com/Brappp/ACT-Logs-Rotator");
         }
 
-        private void ChkRunOnce_CheckedChanged(object sender, EventArgs e)
-        {
-            // placeholder
-        }
-
         public void DeInitPlugin()
         {
-            // Save the state of the checkbox
-            LogsRotate.Settings.Default.PluginEnabled = chkEnabled.Checked;
-            LogsRotate.Settings.Default.Save();
-
             lblStatus.Text = "Plugin Unloaded.";
         }
 

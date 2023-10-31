@@ -11,3 +11,11 @@ C:\Users\actuo\source\repos\LogsRotate\LogsRotate\obj\Debug\LogsRotate.csproj.Co
 C:\Users\actuo\source\repos\LogsRotate\LogsRotate\obj\Debug\LogsRotate.csproj.CopyComplete
 C:\Users\actuo\source\repos\LogsRotate\LogsRotate\obj\Debug\LogsRotate.dll
 C:\Users\actuo\source\repos\LogsRotate\LogsRotate\obj\Debug\LogsRotate.pdb
+C:\Users\actuo\OneDrive\Documents\GitHub\ACT-Logs-Rotator\LogsRotate\LogsRotate\bin\Debug\LogsRotate.dll.config
+C:\Users\actuo\OneDrive\Documents\GitHub\ACT-Logs-Rotator\LogsRotate\LogsRotate\bin\Debug\LogsRotate.dll
+C:\Users\actuo\OneDrive\Documents\GitHub\ACT-Logs-Rotator\LogsRotate\LogsRotate\bin\Debug\LogsRotate.pdb
+C:\Users\actuo\OneDrive\Documents\GitHub\ACT-Logs-Rotator\LogsRotate\LogsRotate\obj\Debug\LogsRotate.csproj.AssemblyReference.cache
+C:\Users\actuo\OneDrive\Documents\GitHub\ACT-Logs-Rotator\LogsRotate\LogsRotate\obj\Debug\LogsRotate.csproj.CoreCompileInputs.cache
+C:\Users\actuo\OneDrive\Documents\GitHub\ACT-Logs-Rotator\LogsRotate\LogsRotate\obj\Debug\LogsRotate.csproj.CopyComplete
+C:\Users\actuo\OneDrive\Documents\GitHub\ACT-Logs-Rotator\LogsRotate\LogsRotate\obj\Debug\LogsRotate.dll
+C:\Users\actuo\OneDrive\Documents\GitHub\ACT-Logs-Rotator\LogsRotate\LogsRotate\obj\Debug\LogsRotate.pdb
