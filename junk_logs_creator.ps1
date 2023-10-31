@@ -4,7 +4,6 @@ if (-Not (Test-Path $directoryPath)) {
     New-Item -Path $directoryPath -ItemType Directory
 }
 
-
 for ($i = 0; $i -lt 10000; $i++) {
 
     $fileName = "log_" + (Get-Date).ToString("yyyyMMdd") + "_$i.log"
