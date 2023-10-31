@@ -27,7 +27,6 @@ namespace LogsRotate
         private CheckBox chkAutoRunOnLaunch;
         private Label lblLastRun;
         private Label lblLogsDeleted;
-
         private PluginSettings settings;
         private string settingsFilePath;
 
