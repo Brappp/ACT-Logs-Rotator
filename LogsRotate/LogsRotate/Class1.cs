@@ -1,152 +1,304 @@
 ﻿using System;
 using System.IO;
 using System.Windows.Forms;
-using Advanced_Combat_Tracker;
 using System.Drawing;
 using System.Xml.Serialization;
+using System.Collections.Generic;
+using Advanced_Combat_Tracker;
 
 namespace LogsRotate
 {
     public class PluginSettings
     {
-        public int DaysToKeep { get; set; }
+        public int DaysToKeep { get; set; } = 30;
         public string LogfilePath { get; set; }
         public bool AutoRunOnLaunch { get; set; }
+        public HashSet<string> LockedLogs { get; set; } = new HashSet<string>();
     }
 
     public class LogRotatorPlugin : IActPluginV1
     {
-        // UI Elements
+        private TabPage pluginTab;
         private Label lblStatus;
-        private Label lblLogFilePath;
-        private TextBox txtDaysToKeep;
-        private TextBox txtLogFilePath;
-        private Button btnSave;
-        private Button btnRun;
-        private LinkLabel lnkGitHub;
+        private TextBox txtDaysToKeep, txtLogFilePath;
+        private Button btnSave, btnRun;
+        private ProgressBar progressBar;
         private CheckBox chkAutoRunOnLaunch;
-        private Label lblLastRun;
-        private Label lblLogsDeleted;
+        private LinkLabel lnkGitHub;
+        private Label lblLastRun, lblLogsDeleted;
+        private ListBox lstAllLogs, lstProtectedLogs;
         private PluginSettings settings;
         private string settingsFilePath;
 
         public void InitPlugin(TabPage pluginScreenSpace, Label pluginStatusText)
         {
-            lblStatus = pluginStatusText;
-
-            // Initialize UI elements
-            txtDaysToKeep = new TextBox();
-            txtLogFilePath = new TextBox();
-            chkAutoRunOnLaunch = new CheckBox();
-
-            // Resolve the %AppData% path and set the settings file path
-            string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string actPluginPath = Path.Combine(appDataPath, "Advanced Combat Tracker", "Plugins");
-            settingsFilePath = Path.Combine(actPluginPath, "LogsRotateSettings.xml");
-
-            // Load settings
+            this.pluginTab = pluginScreenSpace;
+            this.lblStatus = pluginStatusText;
             LoadSettings();
+            InitializeUIComponents();
+            UpdateUIFromSettings();
+            UpdateLogLists();
+        }
 
-            // Update UI elements with loaded settings
+        private void InitializeUIComponents()
+        {
+            pluginTab.Controls.Clear();
+
+            // Main layout panel
+            TableLayoutPanel mainLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 6,
+                AutoSize = true
+            };
+
+            // GroupBox for settings
+            GroupBox settingsGroup = new GroupBox
+            {
+                Text = "Settings",
+                Dock = DockStyle.Top,
+                Padding = new Padding(10),
+                AutoSize = true
+            };
+
+            TableLayoutPanel settingsLayout = new TableLayoutPanel
+            {
+                ColumnCount = 2,
+                RowCount = 4,
+                AutoSize = true,
+                Dock = DockStyle.Fill
+            };
+
+            settingsLayout.Controls.Add(new Label { Text = "Days to Keep:", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 0);
+            txtDaysToKeep = new TextBox { Width = 100, Anchor = AnchorStyles.Left };
+            settingsLayout.Controls.Add(txtDaysToKeep, 1, 0);
+
+            settingsLayout.Controls.Add(new Label { Text = "Log File Path:", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 1);
+            txtLogFilePath = new TextBox { Width = 300, Anchor = AnchorStyles.Left };
+            settingsLayout.Controls.Add(txtLogFilePath, 1, 1);
+
+            settingsLayout.Controls.Add(new Label { Text = "Auto Run on Launch:", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 2);
+            chkAutoRunOnLaunch = new CheckBox { Anchor = AnchorStyles.Left };
+            settingsLayout.Controls.Add(chkAutoRunOnLaunch, 1, 2);
+
+            btnSave = new Button { Text = "Save", Anchor = AnchorStyles.Right };
+            btnSave.Click += BtnSave_Click;
+            settingsLayout.Controls.Add(btnSave, 1, 3);
+
+            settingsGroup.Controls.Add(settingsLayout);
+            mainLayout.Controls.Add(settingsGroup, 0, 0);
+            mainLayout.SetColumnSpan(settingsGroup, 2);
+
+            // GroupBox for actions
+            GroupBox actionsGroup = new GroupBox
+            {
+                Text = "Actions",
+                Dock = DockStyle.Top,
+                Padding = new Padding(10),
+                AutoSize = true
+            };
+
+            TableLayoutPanel actionsLayout = new TableLayoutPanel
+            {
+                ColumnCount = 3,
+                RowCount = 2,
+                AutoSize = true,
+                Dock = DockStyle.Fill
+            };
+
+            btnRun = new Button { Text = "Run", Anchor = AnchorStyles.Right };
+            btnRun.Click += BtnRun_Click;
+            actionsLayout.Controls.Add(btnRun, 0, 0);
+
+            progressBar = new ProgressBar { Dock = DockStyle.Fill };
+            actionsLayout.Controls.Add(progressBar, 1, 0);
+
+            actionsGroup.Controls.Add(actionsLayout);
+            mainLayout.Controls.Add(actionsGroup, 0, 1);
+            mainLayout.SetColumnSpan(actionsGroup, 2);
+
+            // GroupBox for logs
+            GroupBox logsGroup = new GroupBox
+            {
+                Text = "Logs",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(10),
+                AutoSize = true
+            };
+
+            TableLayoutPanel logsLayout = new TableLayoutPanel
+            {
+                ColumnCount = 2,
+                RowCount = 2,
+                AutoSize = true,
+                Dock = DockStyle.Fill
+            };
+
+            // Set the column width percentages to be equal
+            logsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            logsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+
+            logsLayout.Controls.Add(new Label { Text = "All Logs:", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 0);
+            lstAllLogs = new ListBox { Dock = DockStyle.Fill, Height = 200 };
+            lstAllLogs.DoubleClick += LstAllLogs_DoubleClick;
+            logsLayout.Controls.Add(lstAllLogs, 0, 1);
+
+            logsLayout.Controls.Add(new Label { Text = "Protected Logs:", Anchor = AnchorStyles.Left, AutoSize = true }, 1, 0);
+            lstProtectedLogs = new ListBox { Dock = DockStyle.Fill, Height = 200 };
+            lstProtectedLogs.DoubleClick += LstProtectedLogs_DoubleClick;
+            logsLayout.Controls.Add(lstProtectedLogs, 1, 1);
+
+            logsGroup.Controls.Add(logsLayout);
+            mainLayout.Controls.Add(logsGroup, 0, 2);
+            mainLayout.SetColumnSpan(logsGroup, 2);
+
+            // Status labels
+            lblLastRun = new Label { Text = "Last Run: Never", Anchor = AnchorStyles.Left, AutoSize = true };
+            lblLogsDeleted = new Label { Text = "Logs Deleted: 0", Anchor = AnchorStyles.Left, AutoSize = true };
+            mainLayout.Controls.Add(lblLastRun, 0, 3);
+            mainLayout.Controls.Add(lblLogsDeleted, 1, 3);
+
+            // GitHub link
+            lnkGitHub = new LinkLabel { Text = "GitHub Repository", AutoSize = true };
+            lnkGitHub.LinkClicked += LnkGitHub_LinkClicked;
+            mainLayout.Controls.Add(lnkGitHub, 0, 4);
+            mainLayout.SetColumnSpan(lnkGitHub, 2);
+
+            // Status label
+            lblStatus = new Label { AutoSize = true, Dock = DockStyle.Bottom, TextAlign = ContentAlignment.MiddleLeft };
+            mainLayout.Controls.Add(lblStatus, 0, 5);
+            mainLayout.SetColumnSpan(lblStatus, 2);
+
+            pluginTab.Controls.Add(mainLayout);
+        }
+
+        private void LstAllLogs_DoubleClick(object sender, EventArgs e)
+        {
+            if (lstAllLogs.SelectedItem != null)
+            {
+                string selectedLog = lstAllLogs.SelectedItem.ToString();
+                settings.LockedLogs.Add(selectedLog);
+                UpdateLogLists();
+                SaveSettings();
+            }
+        }
+
+        private void LstProtectedLogs_DoubleClick(object sender, EventArgs e)
+        {
+            if (lstProtectedLogs.SelectedItem != null)
+            {
+                string selectedLog = lstProtectedLogs.SelectedItem.ToString();
+                settings.LockedLogs.Remove(selectedLog);
+                UpdateLogLists();
+                SaveSettings();
+            }
+        }
+
+        private void UpdateLogLists()
+        {
+            lstAllLogs.Items.Clear();
+            lstProtectedLogs.Items.Clear();
+
+            DirectoryInfo dirInfo = new DirectoryInfo(settings.LogfilePath);
+            FileInfo[] logFiles = dirInfo.GetFiles("*.log");
+
+            foreach (FileInfo file in logFiles)
+            {
+                if (settings.LockedLogs.Contains(file.FullName))
+                {
+                    lstProtectedLogs.Items.Add(file.FullName);
+                }
+                else
+                {
+                    lstAllLogs.Items.Add(file.FullName);
+                }
+            }
+        }
+
+        private void LnkGitHub_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start("https://github.com/Brappp/ACT-Logs-Rotator");
+        }
+
+        private void UpdateUIFromSettings()
+        {
             txtDaysToKeep.Text = settings.DaysToKeep.ToString();
             txtLogFilePath.Text = settings.LogfilePath;
             chkAutoRunOnLaunch.Checked = settings.AutoRunOnLaunch;
-
-            // Create UI elements for Days to Keep
-            Label lblDaysToKeep = new Label
-            {
-                Text = "Days to Keep:",
-                Location = new Point(10, 10),
-                AutoSize = true
-            };
-
-            txtDaysToKeep.Location = new Point(100, 10);
-
-            // Create UI elements for Log File Path
-            lblLogFilePath = new Label
-            {
-                Text = "Log File Path:",
-                Location = new Point(10, 40),
-                AutoSize = true
-            };
-
-            txtLogFilePath.Location = new Point(100, 40);
-
-            // Create CheckBox for Auto Run on Launch
-            chkAutoRunOnLaunch.Text = "Auto Run on Launch";
-            chkAutoRunOnLaunch.Location = new Point(10, 100);
-            chkAutoRunOnLaunch.AutoSize = true;
-
-            // Create Save button
-            btnSave = new Button
-            {
-                Text = "Save",
-                Location = new Point(100, 70),
-                Width = 70
-            };
-            btnSave.Click += BtnSave_Click;
-
-            // Create Run button
-            btnRun = new Button
-            {
-                Text = "Run",
-                Location = new Point(180, 70),
-                Width = 70
-            };
-            btnRun.Click += BtnRun_Click;
-
-            // Create LinkLabel for GitHub
-            lnkGitHub = new LinkLabel
-            {
-                Text = "GitHub Repository",
-                Location = new Point(10, 160),
-                AutoSize = true
-            };
-            lnkGitHub.LinkClicked += LnkGitHub_LinkClicked;
-
-            // Create Labels for Last Run and Logs Deleted
-            lblLastRun = new Label
-            {
-                Text = "Last Run: Never",
-                Location = new Point(10, 190),
-                AutoSize = true
-            };
-
-            lblLogsDeleted = new Label
-            {
-                Text = "Logs Deleted: 0",
-                Location = new Point(10, 210),
-                AutoSize = true
-            };
-
-            // Add UI elements to plugin tab
-            pluginScreenSpace.Controls.Add(lblDaysToKeep);
-            pluginScreenSpace.Controls.Add(txtDaysToKeep);
-            pluginScreenSpace.Controls.Add(lblLogFilePath);
-            pluginScreenSpace.Controls.Add(txtLogFilePath);
-            pluginScreenSpace.Controls.Add(btnSave);
-            pluginScreenSpace.Controls.Add(btnRun);
-            pluginScreenSpace.Controls.Add(lnkGitHub);
-            pluginScreenSpace.Controls.Add(chkAutoRunOnLaunch);
-            pluginScreenSpace.Controls.Add(lblLastRun);
-            pluginScreenSpace.Controls.Add(lblLogsDeleted);
-
             lblStatus.Text = "Plugin Initialized.";
+        }
 
-            // Automatically run log rotation if the plugin is enabled
-            if (settings.AutoRunOnLaunch)
+        private void BtnSave_Click(object sender, EventArgs e)
+        {
+            if (ValidateInputs())
             {
-                BtnRun_Click(null, null);
+                settings.DaysToKeep = int.Parse(txtDaysToKeep.Text);
+                settings.LogfilePath = txtLogFilePath.Text;
+                settings.AutoRunOnLaunch = chkAutoRunOnLaunch.Checked;
+
+                SaveSettings();
+                lblStatus.Text = "Settings Saved.";
+                UpdateLogLists();
             }
+        }
+
+        private bool ValidateInputs()
+        {
+            if (!int.TryParse(txtDaysToKeep.Text, out int days) || days <= 0)
+            {
+                MessageBox.Show("Please enter a valid number of days to keep logs.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(txtLogFilePath.Text) || !Directory.Exists(txtLogFilePath.Text))
+            {
+                MessageBox.Show("Please enter a valid log file path.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void BtnRun_Click(object sender, EventArgs e)
+        {
+            progressBar.Value = 0;
+            int logsDeleted = RotateLogs();
+            progressBar.Value = 100;
+
+            lblLastRun.Text = $"Last Run: {DateTime.Now}";
+            lblLogsDeleted.Text = $"Logs Deleted: {logsDeleted}";
+
+            // Refresh the log lists after running
+            UpdateLogLists();
+        }
+
+        private int RotateLogs()
+        {
+            int deletedCount = 0;
+            DirectoryInfo dirInfo = new DirectoryInfo(settings.LogfilePath);
+            FileInfo[] logFiles = dirInfo.GetFiles("*.log");
+
+            foreach (FileInfo file in logFiles)
+            {
+                if (!settings.LockedLogs.Contains(file.FullName) && (DateTime.Now - file.CreationTime).TotalDays > settings.DaysToKeep)
+                {
+                    file.Delete();
+                    deletedCount++;
+                }
+            }
+
+            return deletedCount;
         }
 
         private void LoadSettings()
         {
+            settingsFilePath = Path.Combine(ActGlobals.oFormActMain.AppDataFolder.FullName, "LogRotatorSettings.xml");
             if (File.Exists(settingsFilePath))
             {
-                XmlSerializer serializer = new XmlSerializer(typeof(PluginSettings));
                 using (StreamReader reader = new StreamReader(settingsFilePath))
                 {
+                    XmlSerializer serializer = new XmlSerializer(typeof(PluginSettings));
                     settings = (PluginSettings)serializer.Deserialize(reader);
                 }
             }
@@ -154,7 +306,7 @@ namespace LogsRotate
             {
                 settings = new PluginSettings
                 {
-                    DaysToKeep = 365,
+                    DaysToKeep = 30,
                     LogfilePath = Path.GetDirectoryName(ActGlobals.oFormActMain.LogFilePath),
                     AutoRunOnLaunch = false
                 };
@@ -164,69 +316,16 @@ namespace LogsRotate
 
         private void SaveSettings()
         {
-            XmlSerializer serializer = new XmlSerializer(typeof(PluginSettings));
             using (StreamWriter writer = new StreamWriter(settingsFilePath))
             {
+                XmlSerializer serializer = new XmlSerializer(typeof(PluginSettings));
                 serializer.Serialize(writer, settings);
             }
-        }
-
-        private void BtnSave_Click(object sender, EventArgs e)
-        {
-            // Save settings
-            settings.DaysToKeep = int.Parse(txtDaysToKeep.Text);
-            settings.LogfilePath = txtLogFilePath.Text;
-            settings.AutoRunOnLaunch = chkAutoRunOnLaunch.Checked;
-
-            SaveSettings();
-        }
-
-        private void BtnRun_Click(object sender, EventArgs e)
-        {
-            // Apply settings and run
-            int deletedCount = RotateLogs(int.Parse(txtDaysToKeep.Text), txtLogFilePath.Text);
-
-            lblLastRun.Text = $"Last Run: {DateTime.Now}";
-            lblLogsDeleted.Text = $"Logs Deleted: {deletedCount}";
-        }
-
-        private void LnkGitHub_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            System.Diagnostics.Process.Start("https://github.com/Brappp/ACT-Logs-Rotator");
         }
 
         public void DeInitPlugin()
         {
             lblStatus.Text = "Plugin Unloaded.";
-        }
-
-        private int RotateLogs(int daysToKeep, string folderPath)
-        {
-            int deletedCount = 0;
-            try
-            {
-                DateTime currentDate = DateTime.Now;
-                DirectoryInfo dirInfo = new DirectoryInfo(folderPath);
-                FileInfo[] logFiles = dirInfo.GetFiles("*.log");
-
-                foreach (FileInfo file in logFiles)
-                {
-                    TimeSpan age = currentDate - file.CreationTime;
-
-                    if (age.TotalDays > daysToKeep)
-                    {
-                        file.Delete();
-                        deletedCount++;
-                    }
-                }
-
-                lblStatus.Text = $"{deletedCount} log files deleted.";
-            }
-            catch (Exception ex)
-            {
-                lblStatus.Text = "Error: " + ex.Message;
-            }
-            return deletedCount;
         }
     }
 }
