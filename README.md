@@ -43,8 +43,6 @@ The plugin's user interface is organized into several sections:
 5. **View Status**:
     - Check the "Last Run" label to see when the log rotation was last run.
     - Check the "Logs Deleted" label to see how many logs were deleted in the last run.
-6. **Access GitHub**:
-    - Click the "GitHub Repository" link to open the plugin's GitHub page in your web browser.
 
 ## Code Structure
 ### `PluginSettings` Class
