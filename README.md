@@ -9,7 +9,6 @@ The LogRotatorPlugin is a plugin for Advanced Combat Tracker (ACT) that manages 
 - **Auto Run on Launch**: Enable or disable automatic log rotation when ACT is launched.
 - **Protected Logs**: Protect specific logs from being deleted.
 - **Run Now**: Manually trigger log rotation.
-- **GitHub Link**: Access the plugin’s GitHub repository for updates and documentation.
 
 ## User Interface
 The plugin's user interface is organized into several sections:
@@ -18,7 +17,6 @@ The plugin's user interface is organized into several sections:
 2. **Actions**: Contains buttons to save settings and manually run the log rotation.
 3. **Logs**: Displays two lists - "All Logs" and "Protected Logs". Users can move logs between these lists by double-clicking.
 4. **Status**: Displays information about the last run and the number of logs deleted.
-5. **GitHub Link**: Provides a link to the plugin's GitHub repository.
 
 ## How It Works
 1. **Initialization**: When the plugin is initialized, it loads settings from an XML file and sets up the UI components.
