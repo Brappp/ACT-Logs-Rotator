@@ -4,18 +4,11 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Xml.Serialization;
 using System.Collections.Generic;
+using System.Threading.Tasks; // Added for async/await
 using Advanced_Combat_Tracker;
 
 namespace LogsRotate
 {
-    public class PluginSettings
-    {
-        public int DaysToKeep { get; set; } = 30;
-        public string LogfilePath { get; set; }
-        public bool AutoRunOnLaunch { get; set; }
-        public HashSet<string> LockedLogs { get; set; } = new HashSet<string>();
-    }
-
     public class LogRotatorPlugin : IActPluginV1
     {
         private TabPage pluginTab;
@@ -30,14 +23,22 @@ namespace LogsRotate
         private PluginSettings settings;
         private string settingsFilePath;
 
-        public void InitPlugin(TabPage pluginScreenSpace, Label pluginStatusText)
+        public async void InitPlugin(TabPage pluginScreenSpace, Label pluginStatusText)
         {
             this.pluginTab = pluginScreenSpace;
             this.lblStatus = pluginStatusText;
             LoadSettings();
             InitializeUIComponents();
             UpdateUIFromSettings();
-            UpdateLogLists();
+
+            // Auto run log rotation if enabled
+            if (settings.AutoRunOnLaunch)
+            {
+                RunLogRotation();
+            }
+
+            // Check for updates
+            await UpdateChecker.CheckForUpdates();
         }
 
         private void InitializeUIComponents()
@@ -160,7 +161,7 @@ namespace LogsRotate
             mainLayout.Controls.Add(lblLogsDeleted, 1, 3);
 
             // GitHub link
-            lnkGitHub = new LinkLabel { Text = "GitHub Repository", AutoSize = true };
+            lnkGitHub = new LinkLabel { Text = "https://github.com/Brappp/ACT-Logs-Rotator", AutoSize = true };
             lnkGitHub.LinkClicked += LnkGitHub_LinkClicked;
             mainLayout.Controls.Add(lnkGitHub, 0, 4);
             mainLayout.SetColumnSpan(lnkGitHub, 2);
@@ -261,6 +262,11 @@ namespace LogsRotate
         }
 
         private void BtnRun_Click(object sender, EventArgs e)
+        {
+            RunLogRotation();
+        }
+
+        private void RunLogRotation()
         {
             progressBar.Value = 0;
             int logsDeleted = RotateLogs();
