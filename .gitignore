@@ -1,2 +1,6 @@
 /LogsRotate/.vs
-/LogsRotate/LogsRotate/bin
+bin
+.vscode
+.vs
+/Test Data
+/Test_Data
