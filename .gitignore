@@ -1,3 +1,4 @@
-# Ignore vscode temp files
 .vs/
-/LogsRotate/LogsRotate/bin/Debug
+obj/
+bin/
+*.user
