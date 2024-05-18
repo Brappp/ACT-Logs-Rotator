@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Xml.Serialization;
 using System.Collections.Generic;
-using System.Threading.Tasks; // Added for async/await
+using System.Threading.Tasks;
 using Advanced_Combat_Tracker;
 
 namespace LogsRotate
