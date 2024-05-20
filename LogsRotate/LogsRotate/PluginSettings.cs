@@ -9,7 +9,6 @@ namespace LogsRotate
         public bool AutoRunOnLaunch { get; set; } = false;
         public HashSet<string> LockedLogs { get; set; } = new HashSet<string>();
 
-        // Constructor to initialize default values
         public PluginSettings()
         {
             DaysToKeep = 30;

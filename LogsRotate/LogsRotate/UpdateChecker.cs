@@ -9,7 +9,7 @@ namespace LogsRotate
     public class UpdateChecker
     {
         private const string GitHubRepoUrl = "https://api.github.com/repos/Brappp/ACT-Logs-Rotator/releases/latest";
-        private const string CurrentVersion = "3.7";
+        private const string CurrentVersion = "3.8";
 
         public static async Task CheckForUpdates()
         {
