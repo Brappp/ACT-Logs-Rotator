@@ -1,76 +1,77 @@
 # ACT Logs Rotator Plugin
 
-The ACT Logs Rotator Plugin is a tool for managing log files in Advanced Combat Tracker (ACT). This plugin helps you delete old logs based on your specified criteria, ensuring your log folder stays clean and organized.
+The ACT Logs Rotator Plugin is an Advanced Combat Tracker (ACT) plugin designed to manage and rotate logs based on user-defined settings. It helps in maintaining a clean log directory by automatically deleting older logs and provides features for protecting specific logs, auditing actions, and automatically updating the plugin.
 
 ## Features
 
-- **Days to Keep Logs**: Specify the number of days to keep logs. Logs older than this duration are automatically deleted.
-- **Log File Path**: Set the path where the log files are stored.
-- **Auto Run on Launch**: Enable or disable automatic log rotation when ACT is launched.
-- **Protected Logs**: Protect specific logs from being deleted.
-- **Manual Log Rotation**: Manually trigger log rotation at any time.
+- **Log Management**: Automatically delete logs older than a specified number of days.
+- **Log Protection**: Allow users to protect specific logs from being deleted.
+- **Audit Trail**: Maintain a record of actions performed by the plugin.
+- **Automatic Updates**: Check for and notify the user of new updates available for the plugin.
 
-## User Interface
+## Components
 
-The plugin's user interface is organized into several sections:
+### LogRotatorPlugin
 
-1. **Settings**: Configure the number of days to keep logs, the log file path, and the auto run on launch option.
-2. **Actions**: Buttons to save settings and manually run the log rotation.
-3. **Logs**: Displays lists of all logs and protected logs, allowing users to manage log protection interactively.
-4. **Status**: Shows information about the last run and the number of logs deleted.
+The main plugin class that implements `IActPluginV1`. It manages plugin initialization, UI components, and integration with the ACT framework.
 
-## How It Works
+### AuditManager
 
-1. **Initialization**: Loads settings from an XML file and sets up the UI components.
-2. **Settings Management**: Users can configure log management settings, including the number of days to keep logs and the log file path.
-3. **Log Rotation**: Deletes logs older than the specified number of days, except those marked as protected.
-4. **Interactive Log Management**: Allows users to protect or unprotect logs by moving them between the "All Logs" and "Protected Logs" lists.
+Manages the audit trail for the plugin actions. It records each action with a timestamp, description, and whether the action was performed automatically.
 
-## Installation and Usage
+#### Properties
+- **AuditRecords**: A list of all audit records.
 
-1. **Install the Plugin**: Add the ACT Logs Rotator Plugin to ACT.
-2. **Configure Settings**:
-   - Open the plugin tab in ACT.
-   - Enter the number of days to keep logs.
-   - Enter the path to your log files.
-   - Enable auto run on launch if desired.
-   - Save your settings.
-3. **Run Log Rotation**:
-   - Click the "Run" button to manually trigger log rotation.
-   - The progress bar will display the status.
-4. **Manage Logs**:
-   - Double-click logs in the "All Logs" list to move them to the "Protected Logs" list.
-   - Double-click logs in the "Protected Logs" list to move them back to the "All Logs" list.
-5. **View Status**:
-   - Check the status section for information on the last run and the number of logs deleted.
+#### Methods
+- **LogAction**: Logs an action to the audit trail.
+- **ClearAuditTrail**: Clears the audit trail.
 
-## Code Structure
+### PluginSettings
 
-### `PluginSettings` Class
+Holds the configuration settings for the plugin.
 
-- Stores user-defined settings.
-- Fields:
-  - `int DaysToKeep`
-  - `string LogfilePath`
-  - `bool AutoRunOnLaunch`
-  - `HashSet<string> LockedLogs`
-- Methods: Constructor initializes default settings.
+#### Properties
+- **DaysToKeep**: The number of days to keep logs before they are deleted.
+- **LogfilePath**: The path where logs are stored.
+- **AutoRunOnLaunch**: Whether the plugin should run automatically on ACT launch.
+- **LockedLogs**: A set of logs that are protected from deletion.
 
-### `LogRotatorPlugin` Class
+### UpdateChecker
 
-- Manages the UI and log rotation logic.
-- Fields: Various UI controls and settings.
-- Methods:
-  - `InitPlugin(TabPage, Label)`: Initializes the plugin.
-  - `InitializeUIComponents()`: Sets up the UI controls.
-  - `UpdateLogLists()`: Updates the log lists in the UI.
-  - `BtnSave_Click(Object, EventArgs)`: Saves settings.
-  - `BtnRun_Click(Object, EventArgs)`: Runs log rotation.
-  - `RotateLogs()`: Deletes old logs based on the specified criteria.
-  - `LoadSettings()`: Loads settings from an XML file.
-  - `SaveSettings()`: Saves settings to an XML file.
-  - `DeInitPlugin()`: Cleans up when the plugin is unloaded.
+Checks for updates to the plugin by contacting a GitHub repository.
 
-## License
+#### Methods
+- **CheckForUpdates**: Checks GitHub for the latest release of the plugin and compares it with the current version.
 
-This project is licensed under the MIT License.
+## Installation
+
+1. Download the latest release from the GitHub repository.
+2. Extract the ZIP file into your ACT plugins directory.
+3. In ACT, go to `Plugins` > `Plugin Listing` and add `LogRotatorPlugin.dll`.
+4. Restart ACT to load the plugin.
+
+## Usage
+
+After installation, the plugin tab will appear in the ACT interface. Configure the plugin settings according to your preferences:
+
+- Set the number of days to keep logs.
+- Specify the log file path.
+- Choose whether to run the plugin automatically on ACT launch.
+- Protect specific logs via the plugin UI.
+
+## File Locations
+
+- **Settings File**: Located at `%AppData%/Advanced Combat Tracker/Config/LogRotatorSettings.xml`
+- **Audit Trail File**: Located at `%AppData%/Advanced Combat Tracker/Logs/LogRotatorAuditTrail.xml`
+
+## Checking for Updates
+
+The plugin can automatically check for new updates on GitHub. If a new version is available, it will prompt you to download it. Here's how you can update your plugin:
+
+1. Click "Yes" when prompted to download the latest version.
+2. The browser will open the download page where you can download the new version's `.zip` file.
+3. Once downloaded, extract the `.zip` file.
+4. Replace the existing `LogRotatorPlugin.dll` in your ACT plugins directory with the new one from the extracted folder.
+5. Restart ACT for the changes to take effect.
+
+This manual update process ensures you always have access to the latest features and fixes.
