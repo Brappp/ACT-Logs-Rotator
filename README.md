@@ -73,5 +73,3 @@ The plugin can automatically check for new updates on GitHub. If a new version i
 3. Once downloaded, extract the `.zip` file.
 4. Replace the existing `LogRotatorPlugin.dll` in your ACT plugins directory with the new one from the extracted folder.
 5. Restart ACT for the changes to take effect.
-
-This manual update process ensures you always have access to the latest features and fixes.
