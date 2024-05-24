@@ -2,6 +2,8 @@
 
 The ACT Logs Rotator Plugin is an Advanced Combat Tracker (ACT) plugin designed to manage and rotate logs based on user-defined settings. It helps in maintaining a clean log directory by automatically deleting older logs and provides features for protecting specific logs, auditing actions, and automatically updating the plugin.
 
+![alt text](/images/1.jpg)
+
 ## Features
 
 - **Log Management**: Automatically delete logs older than a specified number of days.
